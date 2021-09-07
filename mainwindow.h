@@ -34,9 +34,12 @@ public:
     ~MainWindow();
 public slots:
     void updateReceive();
+    void sendData();
 
 private:
     bool flag;
     Ui::MainWindow *ui;
+
+    QByteArray *arr;
 };
 #endif // MAINWINDOW_H

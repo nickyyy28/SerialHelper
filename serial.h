@@ -45,6 +45,8 @@ public:
     void closeSerial();
     void loadCogfiger(const QString &configPath = nullptr);
     bool isOpen();
+    void sendData(const QString &data);
+    void sendData(const QByteArray &data);
 
 signals:
     void update();

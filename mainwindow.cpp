@@ -6,9 +6,10 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     serial = new Serial(this);
-    this->resize(QSize(951,837));
-//    this->setFixedSize()
+    arr = new QByteArray();
 
+
+    this->resize(QSize(951,837));
     this->setWindowIcon(QIcon(":/Image/serial.png"));
     setWindowState(Qt::WindowMaximized);
 
@@ -88,10 +89,17 @@ MainWindow::MainWindow(QWidget *parent)
             if(isOpen){
                 //打开成功
                 qDebug() << "打开成功!";
-                ui->sendData->setEnabled(true);
+                ui->sendData->setEnabled(flag);
+                ui->actionrefresh->setDisabled(flag);
+                ui->boundrateBox->setDisabled(flag);
+                ui->dataByteBox->setDisabled(flag);
+                ui->stopByteBox->setDisabled(flag);
+                ui->portBox->setDisabled(flag);
+                ui->checkByteBox->setDisabled(flag);
                 ui->clickSerial->setText("关闭串口");
                 flag = !flag;
-                ui->actionrefresh->setDisabled(true);
+
+
             } else {
                 //打开失败
                 emit this->serial->openFialed();
@@ -108,6 +116,13 @@ MainWindow::MainWindow(QWidget *parent)
             this->serial->closeSerial();
             ui->clickSerial->setText("打开串口");
             ui->sendData->setDisabled(true);
+
+            ui->boundrateBox->setDisabled(flag);
+            ui->dataByteBox->setDisabled(flag);
+            ui->stopByteBox->setDisabled(flag);
+            ui->portBox->setDisabled(flag);
+            ui->checkByteBox->setDisabled(flag);
+
             flag = !flag;
         }
     });
@@ -121,6 +136,29 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this->serial, &Serial::update, this, &MainWindow::updateReceive);
 
+    connect(ui->clearReceive, &QPushButton::clicked, [&](){
+        ui->receiveText->clear();
+        this->arr->clear();
+    });
+
+    connect(ui->hexShow, &QCheckBox::clicked, [&](){
+        if(ui->hexShow->isChecked()){
+            ui->receiveText->clear();
+            ui->receiveText->insertPlainText(QString(this->arr->toHex()).toUpper());
+        } else {
+            ui->receiveText->clear();
+            ui->receiveText->insertPlainText(QString(*this->arr));
+        }
+    });
+
+
+//    connect(ui->sendDataText, &QTextEdit::returnPressed, [&](){});
+
+    connect(ui->sendData, &QPushButton::clicked, this, &MainWindow::sendData);
+
+    connect(ui->clearSend, &QPushButton::clicked, [&](){
+        ui->sendDataText->clear();
+    });
 }
 
 MainWindow::~MainWindow()
@@ -128,11 +166,26 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::sendData()
+{
+    QString data = this->ui->sendDataText->toPlainText();
+    this->serial->sendData(data);
+}
+
 void MainWindow::updateReceive()
 {
 //    myTextEdit ->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
     ui->receiveText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
-    this->ui->receiveText->insertPlainText(QString(*(this->serial->receive)));
+
+    this->arr->append(*this->serial->receive);
+
+
+    if(ui->hexShow->isChecked()){
+        this->ui->receiveText->insertPlainText(QString(this->serial->receive->toHex()).toUpper());
+    } else {
+        this->ui->receiveText->insertPlainText(QString(*(this->serial->receive)));
+    }
+
     QScrollBar *scrollbar = this->ui->receiveText->verticalScrollBar();
     if(scrollbar){
         scrollbar->setSliderPosition(scrollbar->maximum());

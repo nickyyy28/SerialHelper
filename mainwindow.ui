@@ -130,7 +130,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QTextEdit" name="textEdit_2">
+           <widget class="QTextEdit" name="sendDataText">
             <property name="minimumSize">
              <size>
               <width>500</width>

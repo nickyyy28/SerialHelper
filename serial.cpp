@@ -55,3 +55,13 @@ void Serial::closeSerial()
         this->SerialPort->close();
     }
 }
+
+void Serial::sendData(const QString &data)
+{
+    this->SerialPort->write(data.toUtf8());
+}
+
+void Serial::sendData(const QByteArray &data)
+{
+    this->SerialPort->write(data);
+}
