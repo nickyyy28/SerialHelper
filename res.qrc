@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>Image/refresh.png</file>
         <file>Image/serial.png</file>
+        <file>Image/backup.png</file>
     </qresource>
 </RCC>

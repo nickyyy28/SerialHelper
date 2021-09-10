@@ -1,5 +1,5 @@
 QT       += core gui
-QT += core gui serialport
+QT += core gui serialport printsupport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT          += charts
 CONFIG += c++11
@@ -21,12 +21,18 @@ SOURCES += \
     errorpage.cpp \
     main.cpp \
     mainwindow.cpp \
-    serial.cpp
+    mythread.cpp \
+    qcustomplot.cpp \
+    serial.cpp \
+    wavedata.cpp
 
 HEADERS += \
     errorpage.h \
     mainwindow.h \
-    serial.h
+    mythread.h \
+    qcustomplot.h \
+    serial.h \
+    wavedata.h
 
 FORMS += \
     errorpage.ui \
