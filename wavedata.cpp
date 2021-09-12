@@ -25,12 +25,12 @@ void WaveData::appendData(const QByteArray &data)
     unlock();
 }
 
-bool WaveData::processData()
+bool WaveData::processData(int datasize)
 {
     bool res = false;
-    if(this->waveRev.size() == 0){
-        QThread::msleep(20);
-    }
+//    if(this->waveRev.size() == 0){
+//        QThread::msleep(20);
+//    }
 
     lock();
 
@@ -42,12 +42,12 @@ bool WaveData::processData()
         if(this->waveRev.at(0) != '\x5A'){
             this->waveRev.remove(0, 1);
             continue;
-        } else if (this->waveRev.size() >= 130 && this->waveRev.at(129) == '\xA5'){
+        } else if (this->waveRev.size() >= 2 + 16 * datasize && this->waveRev.at(1 + 16 * datasize) == '\xA5'){
             for(uint8_t i = 0 ; i < 16 ; i++){
-                this->channels[i] = *(double *)(this->waveRev.begin() + 1 + i * 8);
+                this->channels[i] = *(double *)(this->waveRev.begin() + 1 + i * datasize);
             }
 
-            this->waveRev.remove(0, 130);
+            this->waveRev.remove(0, 2 + 16 * datasize);
             res = true;
             break;
         } else {
@@ -84,4 +84,9 @@ double WaveData::getMax()
         }
     }
     return max;
+}
+
+double* WaveData::getValues()
+{
+    return this->channels;
 }

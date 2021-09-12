@@ -18,9 +18,13 @@ protected:
 
 private:
     WaveData *data;
+    int dataSize;
 
 signals:
     void receiveFinished();
+
+public slots:
+    void setDataSize(int dataSize);
 };
 
 #endif // MYTHREAD_H

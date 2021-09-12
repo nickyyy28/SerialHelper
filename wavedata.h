@@ -13,11 +13,12 @@ public:
     explicit WaveData(QObject *parent = nullptr);
     void lock();
     void unlock();
-    bool processData();
+    bool processData(int datasize);
     void appendData(const QByteArray &data);
     double getChannelData(int index = 1);
     size_t getSize();
     double getMax();
+    double* getValues();
 
 private:
     QMutex m_mutex;

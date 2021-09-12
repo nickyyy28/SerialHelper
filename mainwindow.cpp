@@ -7,21 +7,38 @@ MainWindow::MainWindow(QWidget *parent)
 {
     serial = new Serial(this);
     waveSerial = new Serial(this);
-
+    pidSerial = new Serial(this);
 
     waveData = new WaveData(this);
     arr = new QByteArray();
+    pidData = new QByteArray();
 
     this->resize(QSize(951,837));
     this->setWindowIcon(QIcon(":/Image/serial.png"));
-    setWindowState(Qt::WindowMaximized);
 
     ui->setupUi(this);
 
     initWaves();
 
+    this->tabModel = new QStandardItemModel(this);
+    ui->tableView->setModel(this->tabModel);
+
+    this->ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    this->tabModel->setHorizontalHeaderItem(0, new QStandardItem("Kp"));
+    this->tabModel->setHorizontalHeaderItem(1, new QStandardItem("Ki"));
+    this->tabModel->setHorizontalHeaderItem(2, new QStandardItem("Kd"));
+
+    ui->setPID->setDisabled(true);
+
+//    ui->tableView->setColumnWidth(0, this->ui->tableView->width() / 3);
+//    ui->tableView->setColumnWidth(1, this->ui->tableView->width() / 3);
+//    ui->tableView->setColumnWidth(2, this->ui->tableView->width() / 3);
+
+    //更新波形定时器, 作用是在串口未接受到数据时也能更新波形
     dataTimer = new QTimer(this);
 
+    //100ms为周期
     dataTimer->setInterval(100);
 
 //    qDebug()<< QString("start: %1").arg(timeStampStart);
@@ -30,17 +47,21 @@ MainWindow::MainWindow(QWidget *parent)
 
     //串口扫描函数
     scanTimer = new QTimer(this);
-    scanTimer->setInterval(500);
+    scanTimer->setInterval(1000);
 
     scanTimer->start();
 
     ui->tabWidget->setTabText(0, QString("串口助手"));
     ui->tabWidget->setTabText(1, QString("波形助手"));
+    ui->tabWidget->setTabText(2, QString("PID调试助手"));
 
     flag = true;
     wave_flag = true;
+    pid_flag = true;
     ui->clickSerial->setText("打开串口");
     ui->openSerial->setText("打开串口");
+    ui->openSerial_2->setText("打开串口");
+
 
     ui->actionrefresh->setIcon(QIcon(":/Image/refresh.png"));
 
@@ -53,6 +74,20 @@ MainWindow::MainWindow(QWidget *parent)
 
     thread->start();
 
+    //数据类型
+    QStringList typeList;
+    typeList << "int8" << "int16" << "float32" << "float64";
+
+    ui->dataType->addItems(typeList);
+    ui->dataType->setCurrentIndex(3);
+
+    thread->setDataSize(8);
+
+    this->dataType.insert("int8", 1);
+    this->dataType.insert("int16", 2);
+    this->dataType.insert("float32", 4);
+    this->dataType.insert("float64", 8);
+
     //波特率
     QStringList boundrateList;
     boundrateList << "110" << "300" << "600" << "1200" << "2400" << "4800" << "9600" << "14400" << "19200" << "38400" << "43000" << "57600"
@@ -60,9 +95,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->boundrateBox->addItems(boundrateList);
     ui->boundrateBox_2->addItems(boundrateList);
+    ui->boundrateBox_3->addItems(boundrateList);
 
     ui->boundrateBox->setCurrentIndex(13);
     ui->boundrateBox_2->setCurrentIndex(13);
+    ui->boundrateBox_3->setCurrentIndex(13);
 
     //停止位
     QStringList stopBitList;
@@ -70,6 +107,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->stopByteBox->addItems(stopBitList);
     ui->stopByteBox_2->addItems(stopBitList);
+    ui->stopByteBox_3->addItems(stopBitList);
 
     //数据位
     QStringList dataBitList;
@@ -77,6 +115,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->dataByteBox->addItems(dataBitList);
     ui->dataByteBox_2->addItems(dataBitList);
+    ui->dataByteBox_3->addItems(dataBitList);
 
     //校验位
     QStringList checkBitList;
@@ -84,6 +123,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->checkByteBox->addItems(checkBitList);
     ui->checkByteBox_2->addItems(checkBitList);
+    ui->checkByteBox_3->addItems(checkBitList);
 
     //计算FPS定时器
     QTimer *fpsTimer = new QTimer(this);
@@ -98,6 +138,7 @@ MainWindow::MainWindow(QWidget *parent)
     //开启FPS计算
     fpsTimer->start();
 
+    //波形最大值计算定时器
     maxTimer = new QTimer(this);
     maxTimer->setInterval(50);
 
@@ -119,22 +160,40 @@ MainWindow::MainWindow(QWidget *parent)
         this->ui->waveWidget->yAxis->setRange(- this->max - 5, this->max + 5);
     });
 
+    //开始计算最大值
     maxTimer->start();
 
-    //更新波形
+    //定时器更新波形
     connect(dataTimer, &QTimer::timeout, this, [&](){
         qint64 err = QDateTime::currentMSecsSinceEpoch() - this->recerveStamp;
-        qDebug() << "err = " << err;
+//        qDebug() << "err = " << err;
         if(err > 100){
             this->updateWaves();
         }
     });
+
+    //收数据更新波形
     connect(thread, &MyThread::receiveFinished, this, [&](){
         this->recerveStamp = QDateTime::currentMSecsSinceEpoch();
         this->updateWaves();
         this->fps++;
     });
 
+    connect(ui->addLine, &QPushButton::clicked, [this](){
+        this->tabModel->setItem(this->lineNum, 0, new QStandardItem(""));
+        this->tabModel->setItem(this->lineNum, 1, new QStandardItem(""));
+        this->tabModel->setItem(this->lineNum, 2, new QStandardItem(""));
+        this->lineNum++;
+    });
+
+    connect(ui->subLine, &QPushButton::clicked, [this](){
+        if(this->lineNum > 0){
+            this->tabModel->removeRow(this->lineNum - 1);
+            this->lineNum--;
+        }
+    });
+
+    connect(ui->setPID, &QPushButton::clicked, this, &MainWindow::setPID);
 
     //点击刷新按钮
     connect(ui->actionrefresh,&QAction::triggered,[&](){
@@ -144,6 +203,7 @@ MainWindow::MainWindow(QWidget *parent)
         {   //在portBox中显示可用串口
             ui->portBox->addItem(info.portName());
             ui->portBox_2->addItem(info.portName());
+            ui->portBox_3->addItem(info.portName());
         }
     });
 
@@ -152,6 +212,10 @@ MainWindow::MainWindow(QWidget *parent)
     //点击保存按钮
     connect(ui->actionsaveFile, &QAction::triggered, [](){
 
+    });
+
+    connect(ui->actiongithub, &QAction::triggered, [](){
+        QDesktopServices::openUrl(QUrl(QLatin1String("https://github.com/nickyyy28/SerialHelper")));
     });
 
     //串口助手点击打开/关闭按钮
@@ -260,8 +324,60 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    //PID调试助手点击打开/关闭按钮
+    connect(ui->openSerial_2,&QPushButton::clicked,[&](){
+        if(pid_flag){
+            qDebug() << "串口已打开";
+            ui->boundrateBox_3->backgroundRole();
+            qint32 boundtate = ui->boundrateBox_3->currentText().toInt();
+            QSerialPort::StopBits stopbit = getStopBit(ui->stopByteBox_3->currentText());
+            QSerialPort::DataBits databit = getDataBit(ui->dataByteBox_3->currentText());
+            QSerialPort::Parity parity = getParity(ui->checkByteBox_3->currentText());
+
+            this->pidSerial->setParams(boundtate, ui->portBox_3->currentText(), databit, stopbit, parity);
+
+            bool isOpen = this->pidSerial->openSerial();
+            if(isOpen){
+                //打开成功
+                qDebug() << "打开成功!";
+                ui->setPID->setDisabled(false);
+
+                ui->actionrefresh->setDisabled(pid_flag);
+                ui->boundrateBox_3->setDisabled(pid_flag);
+                ui->dataByteBox_3->setDisabled(pid_flag);
+                ui->stopByteBox_3->setDisabled(pid_flag);
+                ui->portBox_3->setDisabled(pid_flag);
+                ui->checkByteBox_3->setDisabled(pid_flag);
+                ui->openSerial_2->setText("关闭串口");
+                pid_flag = !pid_flag;
+
+
+            } else {
+                //打开失败
+                emit this->pidSerial->openFialed();
+            }
+
+        } else {
+            qDebug() << "串口已关闭";
+
+            ui->setPID->setDisabled(true);
+            ui->actionrefresh->setDisabled(false);
+            this->pidSerial->closeSerial();
+            ui->openSerial_2->setText("打开串口");
+
+            ui->boundrateBox_3->setDisabled(pid_flag);
+            ui->dataByteBox_3->setDisabled(pid_flag);
+            ui->stopByteBox_3->setDisabled(pid_flag);
+            ui->portBox_3->setDisabled(pid_flag);
+            ui->checkByteBox_3->setDisabled(pid_flag);
+
+            pid_flag = !pid_flag;
+        }
+    });
+
     connect(this->serial, &Serial::openFialed, this, &MainWindow::openFialed);
     connect(this->waveSerial, &Serial::openFialed, this, &MainWindow::openFialed);
+    connect(this->pidSerial, &Serial::openFialed, this, &MainWindow::openFialed);
 
     connect(this->serial, &Serial::update, this, &MainWindow::updateReceive);
     connect(this->waveSerial, &Serial::update, this, &MainWindow::waveReceiveUpdate);
@@ -288,11 +404,6 @@ MainWindow::MainWindow(QWidget *parent)
         ui->sendDataText->clear();
     });
 
-    //设置波形使能问题
-    connect(ui->enableChannel1, &QCheckBox::clicked, [&](){
-        ui->enableChannel1->isChecked() ? ui->waveWidget->graph(0)->setVisible(true) : ui->waveWidget->graph(0)->setVisible(false);
-    });
-
     connect(ui->clearWaves, &QPushButton::clicked, [&](){
         this->clearWaves();
         this->timeStampStart = QDateTime::currentMSecsSinceEpoch();
@@ -301,46 +412,33 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(ui->enableAll, &QPushButton::clicked, [&](){
-        ui->enableChannel1->setChecked(true);
-        ui->enableChannel2->setChecked(true);
-        ui->enableChannel3->setChecked(true);
-        ui->enableChannel4->setChecked(true);
-        ui->enableChannel5->setChecked(true);
-        ui->enableChannel6->setChecked(true);
-        ui->enableChannel7->setChecked(true);
-        ui->enableChannel8->setChecked(true);
-        ui->enableChannel9->setChecked(true);
-        ui->enableChannel10->setChecked(true);
-        ui->enableChannel11->setChecked(true);
-        ui->enableChannel12->setChecked(true);
-        ui->enableChannel13->setChecked(true);
-        ui->enableChannel14->setChecked(true);
-        ui->enableChannel15->setChecked(true);
-        ui->enableChannel16->setChecked(true);
+        SET_ALL_CHANNEL(ENABLE);
         SET_ALL_VISABLE;
     });
 
     connect(ui->reverseAll, &QPushButton::clicked, [&](){
-        REVERSE_CHANNEL(1);
-        REVERSE_CHANNEL(2);
-        REVERSE_CHANNEL(3);
-        REVERSE_CHANNEL(4);
-        REVERSE_CHANNEL(5);
-        REVERSE_CHANNEL(6);
-        REVERSE_CHANNEL(7);
-        REVERSE_CHANNEL(8);
-        REVERSE_CHANNEL(9);
-        REVERSE_CHANNEL(10);
-        REVERSE_CHANNEL(11);
-        REVERSE_CHANNEL(12);
-        REVERSE_CHANNEL(13);
-        REVERSE_CHANNEL(14);
-        REVERSE_CHANNEL(15);
-        REVERSE_CHANNEL(16);
+        SET_ALL_CHANNEL(REVERSE);
         SET_ALL_VISABLE;
     });
 
+    connect(ui->cancelEnableAll, &QPushButton::clicked, [&](){
+        SET_ALL_CHANNEL(DISABLE);
+        SET_ALL_VISABLE;
+    });
+
+    connect(this, &MainWindow::setDataType, thread, &MyThread::setDataSize);
+
+    connect(ui->dataType, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged), [&](){
+        emit this->setDataType(this->dataType.value(this->ui->dataType->currentText()));
+        qDebug() << "aaaa";
+    });
+
+    //设置波形使能信号处理函数
     CONNECT_ALL_CHANNEL;
+
+    DISABLE_ALL_VALUE;
+
+
 }
 
 MainWindow::~MainWindow()
@@ -449,6 +547,9 @@ void MainWindow::updateWaves()
     UPDATE_WAVE(ui->waveWidget, 15);
     UPDATE_WAVE(ui->waveWidget, 16);
 
+    //设置所有通道的值
+    SET_ALL_VALUES(this->waveData->getValues());
+
     if(bias - 5 > 0){
         ui->waveWidget->xAxis->setRange(bias - 5 , bias + 5);
     } else {
@@ -475,7 +576,8 @@ void MainWindow::updatePorts()
     QStringList comList;
     QString current = ui->portBox->currentText();
     QString current2 = ui->portBox_2->currentText();
-    bool flag = false, flag2 = false;
+    QString current3 = ui->portBox_3->currentText();
+    bool flag = false, flag2 = false, flag3 = false;
     foreach(const QSerialPortInfo &info,QSerialPortInfo::availablePorts())
     {   //在portBox中显示可用串口
         comList << info.portName();
@@ -486,6 +588,10 @@ void MainWindow::updatePorts()
         if(current2 == info.portName()){
             flag2 = true;
         }
+
+        if(current3 == info.portName()){
+            flag3 = true;
+        }
     }
 
     ui->portBox->clear();
@@ -494,6 +600,9 @@ void MainWindow::updatePorts()
     ui->portBox_2->clear();
     ui->portBox_2->addItems(comList);
 
+    ui->portBox_3->clear();
+    ui->portBox_3->addItems(comList);
+
     if(flag){
         ui->portBox->setCurrentText(current);
     }
@@ -501,6 +610,49 @@ void MainWindow::updatePorts()
     if(flag2){
         ui->portBox_2->setCurrentText(current2);
     }
+
+    if(flag3){
+        ui->portBox_3->setCurrentText(current3);
+    }
+}
+
+void MainWindow::setPID()
+{
+    pidData->clear();
+    pidData->push_back('\x5A');
+
+    for(int row = 0 ; row < this->lineNum ; row++){
+        for(int column = 0 ; column < 3 ; column++){
+            bool isOk;
+            qDebug() << "row = " << row << " column = " << column;
+            qDebug() << "test = " << this->tabModel->item(row, column)->text();
+            float item = this->tabModel->item(row, column)->text().toFloat(&isOk);
+            qDebug() << "test = " << this->tabModel->item(row, column)->text() << "number = " << item;
+            if(isOk){
+                qDebug() << "aaaa";
+                QByteArray temp;
+                temp.resize(sizeof(item));
+                memcpy(temp.data(), &item, sizeof(item));
+                pidData->append(temp);
+            } else {
+                qDebug() << QString("the row %1 , column %2 is not a float number").arg(row + 1).arg(column + 1);
+                errorpage_pid *page = new errorpage_pid();
+                page->setWindowTitle("数据错误");
+                page->setRowAndColumn(row + 1, column + 1);
+                page->exec();
+                return;
+            }
+        }
+    }
+
+    qDebug() << "当前有" << this->lineNum << "行";
+
+
+    pidData->push_back('\xA5');
+
+    qDebug() << "send" << pidData->size() << "byte data";
+
+    this->pidSerial->sendData(*pidData);
 }
 
 double MainWindow::getChannelMax()

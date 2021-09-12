@@ -3,5 +3,6 @@
         <file>Image/refresh.png</file>
         <file>Image/serial.png</file>
         <file>Image/backup.png</file>
+        <file>Image/github.png</file>
     </qresource>
 </RCC>
