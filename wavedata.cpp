@@ -44,7 +44,23 @@ bool WaveData::processData(int datasize)
             continue;
         } else if (this->waveRev.size() >= 2 + 16 * datasize && this->waveRev.at(1 + 16 * datasize) == '\xA5'){
             for(uint8_t i = 0 ; i < 16 ; i++){
-                this->channels[i] = *(double *)(this->waveRev.begin() + 1 + i * datasize);
+                switch (datasize) {
+                    case 1:
+                        this->channels[i] = (double)(*(int8_t *)(this->waveRev.begin() + 1 + i * datasize) * 1.0);
+                        break;
+                    case 2:
+                        this->channels[i] = (double)(*(int16_t *)(this->waveRev.begin() + 1 + i * datasize) * 1.0);
+                        break;
+                    case 4:
+                        this->channels[i] = (double)(*(float *)(this->waveRev.begin() + 1 + i * datasize) * 1.0);
+                        break;
+                    case 8:
+                        this->channels[i] = (double)(*(double *)(this->waveRev.begin() + 1 + i * datasize) * 1.0);
+                        break;
+                    default:
+                        break;
+                }
+
             }
 
             this->waveRev.remove(0, 2 + 16 * datasize);
