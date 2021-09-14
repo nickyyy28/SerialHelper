@@ -4,5 +4,6 @@
         <file>Image/serial.png</file>
         <file>Image/backup.png</file>
         <file>Image/github.png</file>
+        <file>Image/error.png</file>
     </qresource>
 </RCC>

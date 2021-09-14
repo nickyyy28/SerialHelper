@@ -9,7 +9,7 @@ errorpage_pid::errorpage_pid(QDialog *parent) :
 
     ui->row->setReadOnly(true);
     ui->column->setReadOnly(true);
-
+    this->setWindowIcon(QIcon(":/Image/error.png"));
     connect(ui->btn_close, &QPushButton::clicked, [this](){
         this->close();
     });
