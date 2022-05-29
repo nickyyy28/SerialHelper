@@ -5,6 +5,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    this->setCentralWidget(ui->tabWidget);
     serial = new Serial(this);
     waveSerial = new Serial(this);
     pidSerial = new Serial(this);
@@ -125,6 +126,24 @@ MainWindow::MainWindow(QWidget *parent)
     ui->checkByteBox_2->addItems(checkBitList);
     ui->checkByteBox_3->addItems(checkBitList);
 
+//    ui->value1->setStyleSheet("background-color:rgba(0,200,0,0)");
+//    ui->value2->setStyleSheet("background-color:rgba(0,0,100,0)");
+//    ui->value3->setStyleSheet("background-color:rgba(0,0,0,100)");
+//    ui->value4->setStyleSheet("background-color:rgba(0,100,100,0)");
+//    ui->value5->setStyleSheet("background-color:rgba(0,100,0,100)");
+//    ui->value6->setStyleSheet("background-color:rgba(0,0,100,100)");
+//    ui->value7->setStyleSheet("background-color:rgba(0,100,100,100)");
+//    ui->value8->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value9->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value10->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value11->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value12->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value13->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value14->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value15->setStyleSheet("background-color:rgba(0,255,0,0)");
+//    ui->value16->setStyleSheet("background-color:rgba(0,255,0,0)");
+//
+
     //计算FPS定时器
     QTimer *fpsTimer = new QTimer(this);
     fpsTimer->setInterval(1000);
@@ -143,7 +162,7 @@ MainWindow::MainWindow(QWidget *parent)
     maxTimer->setInterval(50);
 
     connect(maxTimer, &QTimer::timeout, [this](){
-        if(this->maxQueue.size() > 20){
+        /*if(this->maxQueue.size() > 10 * this->fps){
             this->maxQueue.pop_front();
         }
         this->maxQueue.push_back(this->getChannelMax());
@@ -157,7 +176,8 @@ MainWindow::MainWindow(QWidget *parent)
 
         if(this->max < 10) this->max = 10;
 
-        this->ui->waveWidget->yAxis->setRange(- this->max - 5, this->max + 5);
+        this->ui->waveWidget->yAxis->setRange(- this->max - 5, this->max + 5);*/
+        this->ui->waveWidget->yAxis->setRange(10000, 10000);
     });
 
     //开始计算最大值
@@ -496,26 +516,38 @@ void MainWindow::initWaves()
         ui->waveWidget->addGraph()->setVisible(false);
     }
 
-    pen.setColor(Qt::yellow);
+    pen.setColor(QColor(80,255,95));
     ui->waveWidget->graph(0)->setPen(pen);
-
-    pen.setColor(Qt::red);
+    pen.setColor(QColor(39,211,234));
     ui->waveWidget->graph(1)->setPen(pen);
-
-    pen.setColor(Qt::blue);
+    pen.setColor(QColor(255,239,14));
     ui->waveWidget->graph(2)->setPen(pen);
-
-    pen.setColor(Qt::black);
+    pen.setColor(QColor(255,33,244));
     ui->waveWidget->graph(3)->setPen(pen);
-
-    pen.setColor(Qt::cyan);
+    pen.setColor(QColor(241,43,47));
     ui->waveWidget->graph(4)->setPen(pen);
-
-    pen.setColor(Qt::green);
+    pen.setColor(QColor(78,87,255));
     ui->waveWidget->graph(5)->setPen(pen);
-
-    pen.setColor(Qt::gray);
+    pen.setColor(QColor(255,128,103));
     ui->waveWidget->graph(6)->setPen(pen);
+    pen.setColor(QColor(148,255,25));
+    ui->waveWidget->graph(7)->setPen(pen);
+    pen.setColor(QColor(239,146,255));
+    ui->waveWidget->graph(8)->setPen(pen);
+    pen.setColor(QColor(189,255,103));
+    ui->waveWidget->graph(9)->setPen(pen);
+    pen.setColor(QColor(131,160,255));
+    ui->waveWidget->graph(10)->setPen(pen);
+    pen.setColor(QColor(255,170,127));
+    ui->waveWidget->graph(11)->setPen(pen);
+    pen.setColor(QColor(0,255,255));
+    ui->waveWidget->graph(12)->setPen(pen);
+    pen.setColor(QColor(255,184,184));
+    ui->waveWidget->graph(13)->setPen(pen);
+    pen.setColor(QColor(200,255,0));
+    ui->waveWidget->graph(14)->setPen(pen);
+    pen.setColor(QColor(115,60,255));
+    ui->waveWidget->graph(15)->setPen(pen);
 
     SET_ALL_VISABLE;
 }
@@ -563,9 +595,11 @@ void MainWindow::updateWaves()
         }
     }
 
+    float offset = ui->waveWidget->offset();
+    //ui->waveWidget->yAxis->setRange(-max - 5, max + 5);
+    ui->waveWidget->yAxis->setRange(-ui->waveWidget->getYAxis() + offset , ui->waveWidget->getYAxis() + offset);
 
-//    ui->waveWidget->yAxis->setRange(-max - 5, max + 5);
-//    ui->waveWidget->yAxis->setRange(-15, 15);
+//    qDebug() << "y轴范围" << ui->waveWidget->getYAxis();
 
     ui->waveWidget->replot();
     //qDebug() << QString("timeout, channel1: %1 channel1: %2, channel1: %3").arg(this->channel1).arg(this->channel2).arg(this->channel3);
@@ -645,10 +679,13 @@ void MainWindow::setPID()
         }
     }
 
+    qDebug() << pidData;
+
     qDebug() << "当前有" << this->lineNum << "行";
 
-
     pidData->push_back('\xA5');
+
+    qDebug() << pidData->length();
 
     qDebug() << "send" << pidData->size() << "byte data";
 

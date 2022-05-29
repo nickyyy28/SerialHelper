@@ -73,11 +73,11 @@ for(size_t i = 0; i < N ; i++){   \
     CHANNEL_##ACTION(7);        \
     CHANNEL_##ACTION(8);        \
     CHANNEL_##ACTION(9);        \
-    CHANNEL_##ACTION(10);        \
-    CHANNEL_##ACTION(12);        \
-    CHANNEL_##ACTION(13);        \
-    CHANNEL_##ACTION(14);        \
-    CHANNEL_##ACTION(15);        \
+    CHANNEL_##ACTION(10);       \
+    CHANNEL_##ACTION(12);       \
+    CHANNEL_##ACTION(13);       \
+    CHANNEL_##ACTION(14);       \
+    CHANNEL_##ACTION(15);       \
     CHANNEL_##ACTION(16)
 
 //连接通道时能使能信号

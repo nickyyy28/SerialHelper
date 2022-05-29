@@ -4,17 +4,17 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT          += charts
 CONFIG += c++11
 
-win32{
-INCLUDEPATH += \
-    E:\opencv\build\include \
-    D:\Environment\Eigen\include
-LIBS += \
-    E:\opencv\build\x64\vc15\lib\opencv_world451d.lib
-}
+#win32{
+#INCLUDEPATH += \
+#    E:\opencv\build\include \
+#    D:\Environment\Eigen\include
+#LIBS += \
+#    E:\opencv\build\x64\vc15\lib\opencv_world451d.lib
+#}
 
-unix{
+#unix{
 
-}
+#}
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
@@ -25,6 +25,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mythread.cpp \
+    mywaveplot.cpp \
     qcustomplot.cpp \
     serial.cpp \
     wavedata.cpp
@@ -34,6 +35,7 @@ HEADERS += \
     errorpage_pid.h \
     mainwindow.h \
     mythread.h \
+    mywaveplot.h \
     qcustomplot.h \
     serial.h \
     wavedata.h
